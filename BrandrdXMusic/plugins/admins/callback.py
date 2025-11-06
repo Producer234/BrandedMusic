@@ -441,15 +441,17 @@ async def markup_timer():
 asyncio.create_task(markup_timer())
 
 
+# ======================================================
+# 📸 Groups / Channels Section (Help-Style Layout)
+# ======================================================
+
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 
-# --- Custom Images ---
 GROUP_IMAGE = "https://files.catbox.moe/3zc6ro.jpg"
 CHANNEL_IMAGE = "https://files.catbox.moe/3zc6ro.jpg"
+SUPPORT_CHAT = "https://t.me/ZiddiSupport"
 
-# --- Apne Links ---
-SUPPORT_GROUP = "https://t.me/ZiddiSupport"
 GROUP_LIST = [
     {"name": "🎧 ZIDDI × MUSIC", "url": "https://t.me/ZiddiMusicGroup"},
     {"name": "💬 Music Lovers", "url": "https://t.me/MusicLoversChat"},
@@ -459,72 +461,51 @@ CHANNEL_LIST = [
     {"name": "🎶 ZIDDI Support", "url": "https://t.me/ZiddiSupport"},
 ]
 
-# --- Main Buttons ---
-@Client.on_message(filters.command("start"))
-async def start(_, message):
-    buttons = [
-        [InlineKeyboardButton("🎧 GROUPS LIST", callback_data="show_groups")],
-        [InlineKeyboardButton("📺 CHANNELS LIST", callback_data="show_channels")],
-    ]
-    await message.reply_text(
-        "👋 Welcome!\n\nChoose an option below 👇",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
 
-# --- Groups List Button ---
 @Client.on_callback_query(filters.regex("show_groups"))
 async def show_groups(_, query: CallbackQuery):
     caption = "📜 **Official Groups List:**\n\n"
     for g in GROUP_LIST:
         caption += f"• [{g['name']}]({g['url']})\n"
-    caption += "\n✨ Join our groups and be part of the community!"
+    caption += "\n✨ Join our groups and connect with the community!"
 
     buttons = [
-        [InlineKeyboardButton("💬 Support Group", url=SUPPORT_GROUP)],
+        [InlineKeyboardButton("💬 Support Chat", url=SUPPORT_CHAT)],
         [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")],
     ]
 
-    await query.message.delete()
-    await _.send_photo(
-        chat_id=query.message.chat.id,
-        photo=GROUP_IMAGE,
-        caption=caption,
+    await query.message.edit_media(
+        media={"type": "photo", "media": GROUP_IMAGE, "caption": caption},
         reply_markup=InlineKeyboardMarkup(buttons),
-        parse_mode="markdown"
     )
 
-# --- Channels List Button ---
+
 @Client.on_callback_query(filters.regex("show_channels"))
 async def show_channels(_, query: CallbackQuery):
     caption = "📺 **Official Channels List:**\n\n"
     for c in CHANNEL_LIST:
         caption += f"• [{c['name']}]({c['url']})\n"
-    caption += "\n🚀 Stay tuned for the latest updates!"
+    caption += "\n🚀 Stay updated with our latest music and announcements!"
 
     buttons = [
-        [InlineKeyboardButton("💬 Support Group", url=SUPPORT_GROUP)],
+        [InlineKeyboardButton("💬 Support Chat", url=SUPPORT_CHAT)],
         [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")],
     ]
 
-    await query.message.delete()
-    await _.send_photo(
-        chat_id=query.message.chat.id,
-        photo=CHANNEL_IMAGE,
-        caption=caption,
+    await query.message.edit_media(
+        media={"type": "photo", "media": CHANNEL_IMAGE, "caption": caption},
         reply_markup=InlineKeyboardMarkup(buttons),
-        parse_mode="markdown"
     )
 
-# --- Back Button (Main Menu) ---
+
 @Client.on_callback_query(filters.regex("back_to_main"))
 async def back_to_main(_, query: CallbackQuery):
     buttons = [
         [InlineKeyboardButton("🎧 GROUPS LIST", callback_data="show_groups")],
         [InlineKeyboardButton("📺 CHANNELS LIST", callback_data="show_channels")],
     ]
-    await query.message.delete()
-    await _.send_message(
-        chat_id=query.message.chat.id,
-        text="👋 Back to main menu:",
-        reply_markup=InlineKeyboardMarkup(buttons)
+
+    await query.message.edit_media(
+        media={"type": "photo", "media": GROUP_IMAGE, "caption": "👋 Welcome! Choose an option below:"},
+        reply_markup=InlineKeyboardMarkup(buttons),
     )
