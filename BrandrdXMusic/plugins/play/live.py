@@ -4,7 +4,7 @@ from BrandrdXMusic import YouTube, app
 from BrandrdXMusic.utils.channelplay import get_channeplayCB
 from BrandrdXMusic.utils.decorators.language import languageCB
 from BrandrdXMusic.utils.stream.stream import stream
-from config import BANNED_USERS
+from config import BANNED_USERS, AMBOT
 
 
 @app.on_callback_query(filters.regex("LiveStream") & ~BANNED_USERS)
@@ -30,7 +30,7 @@ async def play_live_stream(client, CallbackQuery, _):
     except:
         pass
     mystic = await CallbackQuery.message.reply_text(
-        _["play_2"].format(channel) if channel else _["play_1"]
+        _["play_2"].format(channel) if channel else random.choice(AMBOT)
     )
     try:
         details, track_id = await YouTube.track(vidid, True)
