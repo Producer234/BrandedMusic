@@ -450,53 +450,51 @@ CHANNEL_IMAGE = "https://files.catbox.moe/3zc6ro.jpg"
 
 # --- Apne Links ---
 GROUP_LIST = [
-    {"name": "🎧 <b>ZIDDI × MUSIC</b>", "url": "https://t.me/ZiddiMusicGroup"},
-    {"name": "💬 <b>Music Lovers</b>", "url": "https://t.me/MusicLoversChat"},
+    {"name": "🎧 ZIDDI × MUSIC", "url": "https://t.me/ZiddiMusicGroup"},
+    {"name": "💬 Music Lovers", "url": "https://t.me/MusicLoversChat"},
 ]
 CHANNEL_LIST = [
-    {"name": "📢 <b>ZIDDI Updates</b>", "url": "https://t.me/ZiddiUpdates"},
-    {"name": "🎶 <b>ZIDDI Support</b>", "url": "https://t.me/ZiddiSupport"},
+    {"name": "📢 ZIDDI Updates", "url": "https://t.me/ZiddiUpdates"},
+    {"name": "🎶 ZIDDI Support", "url": "https://t.me/ZiddiSupport"},
 ]
 SUPPORT_GROUP = "https://t.me/ZiddiSupport"
 
 
 @app.on_callback_query(filters.regex("show_groups"))
 async def show_groups(_, query: CallbackQuery):
-    caption = "<b>📜 Official Groups List:</b>\n\n"
+    caption = "📜 Official Groups List:\n\n"
     for g in GROUP_LIST:
-        caption += f"• <a href='{g['url']}'>{g['name']}</a>\n"
-    caption += "\n✨ <i>Join our groups and be part of the community!</i>"
-
+        caption += f"• {g['name']} → {g['url']}\n"
+    caption += "\n✨ Join our groups and be part of the community!"
+    
     buttons = [
         [InlineKeyboardButton("💬 Support Group", url=SUPPORT_GROUP)],
         [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")],
     ]
-
+    
     await query.message.reply_photo(
         photo=GROUP_IMAGE,
         caption=caption,
         reply_markup=InlineKeyboardMarkup(buttons),
-        parse_mode="html",
     )
 
 
 @app.on_callback_query(filters.regex("show_channels"))
 async def show_channels(_, query: CallbackQuery):
-    caption = "<b>📺 Official Channels List:</b>\n\n"
+    caption = "📺 Official Channels List:\n\n"
     for c in CHANNEL_LIST:
-        caption += f"• <a href='{c['url']}'>{c['name']}</a>\n"
-    caption += "\n🚀 <i>Stay tuned for the latest updates!</i>"
-
+        caption += f"• {c['name']} → {c['url']}\n"
+    caption += "\n🚀 Stay tuned for the latest updates!"
+    
     buttons = [
         [InlineKeyboardButton("💬 Support Group", url=SUPPORT_GROUP)],
         [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")],
     ]
-
+    
     await query.message.reply_photo(
         photo=CHANNEL_IMAGE,
         caption=caption,
         reply_markup=InlineKeyboardMarkup(buttons),
-        parse_mode="html",
     )
 
 
@@ -512,8 +510,6 @@ async def back_to_main(_, query: CallbackQuery):
         "S_B_6": "Channel"
     })
     await query.message.edit_text(
-        "<b>👋 Back to main menu:</b>",
+        "👋 Back to main menu:",
         reply_markup=InlineKeyboardMarkup(buttons),
-        parse_mode="html",
-        disable_web_page_preview=True,
     )
