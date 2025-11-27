@@ -91,10 +91,10 @@ async def greet_group(_, member: ChatMemberUpdated):
 ๏ 𝗡𝗔𝗠𝗘 ➠ {user.mention}
 ๏ 𝗜𝗗 ➠ {user.id}
 ๏ 𝐔𝐒𝐄𝐑𝐍𝐀𝐌𝐄 ➠ @{user.username}
-๏ 𝐌𝐀𝐃𝐄 𝐁𝐘 ➠ [𝗕𝗥𝗔𝗡𝗗𝗘𝗗 𓆩🇽𓆪 𝗞𝗜𝗡𝗚 📿](https://t.me/BRANDEDKING8)
+๏ 𝐌𝐀𝐃𝐄 𝐁𝐘 ➠ [PR 📿](https://t.me/MAIN_CHANNEL_PR)
 ➖➖➖➖➖➖➖➖➖➖➖
 """,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f"⦿ ᴀᴅᴅ ᴍᴇ ⦿", url=f"https://t.me/Sustumm_music_bot?startgroup=true")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f"⦿ ᴀᴅᴅ ᴍᴇ ⦿", url=f"https://t.me/all_priya_bot?startgroup=true")]])
         )
     except Exception as e:
         LOGGER.error(e)
