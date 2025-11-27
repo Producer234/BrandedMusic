@@ -1,17 +1,28 @@
+# stream.py — fixed version
+
 import os
+import time
+import random
+import asyncio
 from random import randint
 from typing import Union
-import random
-import string
-import asyncio
-from pyrogram import client, filters
-from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
-from pytgcalls.exceptions import NoActiveGroupCall
-from BrandrdXMusic.utils.database import get_assistant
+
+from pyrogram.types import InlineKeyboardMarkup, Message
+from youtubesearchpython.__future__ import VideosSearch
+
 import config
-from BrandrdXMusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
+from BrandrdXMusic import (
+    Apple,
+    Resso,
+    SoundCloud,
+    Spotify,
+    Telegram,
+    YouTube,
+    Carbon,
+    app,
+)
 from BrandrdXMusic.core.call import Hotty
-from BrandrdXMusic.misc import SUDOERS
+from BrandrdXMusic.misc import SUDOERS, db
 from BrandrdXMusic.utils import seconds_to_min, time_to_seconds
 from BrandrdXMusic.utils.channelplay import get_channeplayCB
 from BrandrdXMusic.utils.decorators.language import languageCB
@@ -24,36 +35,28 @@ from BrandrdXMusic.utils.database import (
     get_lang,
     is_banned_user,
     is_on_off,
+    add_active_video_chat,
+    is_active_chat,
 )
 from BrandrdXMusic.utils.logger import play_logs
-from config import BANNED_USERS, lyrical
-from time import time
 from BrandrdXMusic.utils.extraction import extract_user
-
-# Define a dictionary to track the last message timestamp for each user
-user_last_message_time = {}
-user_command_count = {}
-# Define the threshold for command spamming (e.g., 20 commands within 60 seconds)
-SPAM_THRESHOLD = 2
-SPAM_WINDOW_SECONDS = 5
-
-
-from pyrogram.types import InlineKeyboardMarkup
-
-import config
-from BrandrdXMusic import Carbon, YouTube, app
-from BrandrdXMusic.core.call import Hotty
-from BrandrdXMusic.misc import db
-from BrandrdXMusic.utils.database import add_active_video_chat, is_active_chat
-from BrandrdXMusic.utils.exceptions import AssistantErr
 from BrandrdXMusic.utils.inline import (
     aq_markup,
     close_markup,
     stream_markup,
+    stream_markup2,  # <-- fixed: import stream_markup2 which was missing
 )
 from BrandrdXMusic.utils.pastebin import HottyBin
 from BrandrdXMusic.utils.stream.queue import put_queue, put_queue_index
-from youtubesearchpython.__future__ import VideosSearch
+from BrandrdXMusic.utils.exceptions import AssistantErr
+from BrandrdXMusic.utils.database import get_assistant
+from config import BANNED_USERS, lyrical
+
+# small anti-spam helpers (kept from your original file)
+user_last_message_time = {}
+user_command_count = {}
+SPAM_THRESHOLD = 2
+SPAM_WINDOW_SECONDS = 5
 
 
 async def stream(
@@ -71,28 +74,29 @@ async def stream(
 ):
     if not result:
         return
+
     if forceplay:
         await Hotty.force_stop_stream(chat_id)
+
+    # playlist flow
     if streamtype == "playlist":
         msg = f"{_['play_19']}\n\n"
         count = 0
         for search in result:
-            if int(count) == config.PLAYLIST_FETCH_LIMIT:
-                continue
+            if count >= config.PLAYLIST_FETCH_LIMIT:
+                break
             try:
-                (
-                    title,
-                    duration_min,
-                    duration_sec,
-                    thumbnail,
-                    vidid,
-                ) = await YouTube.details(search, False if spotify else True)
-            except:
+                title, duration_min, duration_sec, thumbnail, vidid = await YouTube.details(
+                    search, False if spotify else True
+                )
+            except Exception:
                 continue
+
             if str(duration_min) == "None":
                 continue
             if duration_sec > config.DURATION_LIMIT:
                 continue
+
             if await is_active_chat(chat_id):
                 await put_queue(
                     chat_id,
@@ -117,8 +121,10 @@ async def stream(
                     file_path, direct = await YouTube.download(
                         vidid, mystic, video=status, videoid=True
                     )
-                except:
+                except Exception:
                     await mystic.edit_text(_["play_3"])
+                    continue
+
                 await Hotty.join_call(
                     chat_id,
                     original_chat_id,
@@ -154,15 +160,13 @@ async def stream(
 
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
+
         if count == 0:
             return
         else:
-            link = await brandedBin(msg)
+            link = await HottyBin(msg) if "HottyBin" in globals() else await brandedBin(msg) if "brandedBin" in globals() else None
             lines = msg.count("\n")
-            if lines >= 17:
-                car = os.linesep.join(msg.split(os.linesep)[:17])
-            else:
-                car = msg
+            car = os.linesep.join(msg.split(os.linesep)[:17]) if lines >= 17 else msg
             carbon = await Carbon.generate(car, randint(100, 10000000))
             upl = close_markup(_)
             return await app.send_photo(
@@ -171,19 +175,24 @@ async def stream(
                 caption=_["play_21"].format(position, link),
                 reply_markup=upl,
             )
+
+    # youtube single
     elif streamtype == "youtube":
-        link = result["link"]
-        vidid = result["vidid"]
-        title = (result["title"]).title()
-        duration_min = result["duration_min"]
-        thumbnail = result["thumb"]
+        link = result.get("link")
+        vidid = result.get("vidid")
+        title = (result.get("title") or "").title()
+        duration_min = result.get("duration_min")
+        thumbnail = result.get("thumb")
         status = True if video else None
+
         try:
             file_path, direct = await YouTube.download(
                 vidid, mystic, videoid=True, video=status
             )
-        except:
+        except Exception:
             await mystic.edit_text(_["play_3"])
+            return
+
         if await is_active_chat(chat_id):
             await put_queue(
                 chat_id,
@@ -202,21 +211,13 @@ async def stream(
             await app.send_photo(
                 chat_id=original_chat_id,
                 photo=img,
-                caption=_["queue_4"].format(
-                    position, title[:18], duration_min, user_name
-                ),
+                caption=_["queue_4"].format(position, title[:18], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(
-                chat_id,
-                original_chat_id,
-                file_path,
-                video=status,
-                image=thumbnail,
-            )
+            await Hotty.join_call(chat_id, original_chat_id, file_path, video=status, image=thumbnail)
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -242,9 +243,10 @@ async def stream(
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
+
+    # soundcloud
     elif streamtype == "soundcloud":
         file_path = result["filepath"]
         title = result["title"]
@@ -288,18 +290,18 @@ async def stream(
             run = await app.send_photo(
                 original_chat_id,
                 photo=config.SOUNCLOUD_IMG_URL,
-                caption=_["stream_1"].format(
-                    config.SUPPORT_CHAT, title[:23], duration_min, user_name
-                ),
+                caption=_["stream_1"].format(config.SUPPORT_CHAT, title[:23], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
+
+    # telegram file
     elif streamtype == "telegram":
         file_path = result["path"]
-        link = result["link"]
-        title = (result["title"]).title()
-        duration_min = result["dur"]
+        link = result.get("link")
+        title = (result.get("title") or "").title()
+        duration_min = result.get("dur")
         status = True if video else None
         if await is_active_chat(chat_id):
             await put_queue(
@@ -347,13 +349,16 @@ async def stream(
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
+
+    # live
     elif streamtype == "live":
-        link = result["link"]
-        vidid = result["vidid"]
-        title = (result["title"]).title()
-        thumbnail = result["thumb"]
+        link = result.get("link")
+        vidid = result.get("vidid")
+        title = (result.get("title") or "").title()
+        thumbnail = result.get("thumb")
         duration_min = "Live Track"
         status = True if video else None
+
         if await is_active_chat(chat_id):
             await put_queue(
                 chat_id,
@@ -413,6 +418,8 @@ async def stream(
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
+
+    # index / m3u8
     elif streamtype == "index":
         link = result
         title = "ɪɴᴅᴇx ᴏʀ ᴍ3ᴜ8 ʟɪɴᴋ"
@@ -437,12 +444,7 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(
-                chat_id,
-                original_chat_id,
-                link,
-                video=True if video else None,
-            )
+            await Hotty.join_call(chat_id, original_chat_id, link, video=True if video else None)
             await put_queue_index(
                 chat_id,
                 original_chat_id,
@@ -466,26 +468,24 @@ async def stream(
             await mystic.delete()
 
 
-# Function to get thumbnail by video ID
-async def get_thumb(videoid):
+# single robust get_thumb function
+async def get_thumb(videoid: str) -> str:
     try:
-        # Search for the video using video ID
+        if not videoid:
+            return config.YOUTUBE_IMG_URL
         query = f"https://www.youtube.com/watch?v={videoid}"
         results = VideosSearch(query, limit=1)
-        for result in (await results.next())["result"]:
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-        return thumbnail
-    except Exception as e:
-        return config.YOUTUBE_IMG_URL
-
-
-async def get_thumb(vidid):
-    try:
-        # Search for the video using video ID
-        query = f"https://www.youtube.com/watch?v={vidid}"
-        results = VideosSearch(query, limit=1)
-        for result in (await results.next())["result"]:
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-        return thumbnail
-    except Exception as e:
+        data = await results.next()
+        if not data:
+            return config.YOUTUBE_IMG_URL
+        result_list = data.get("result") or []
+        if not result_list:
+            return config.YOUTUBE_IMG_URL
+        first = result_list[0]
+        thumbs = first.get("thumbnails") or []
+        if not thumbs:
+            return config.YOUTUBE_IMG_URL
+        thumbnail = thumbs[0].get("url", "").split("?")[0]
+        return thumbnail or config.YOUTUBE_IMG_URL
+    except Exception:
         return config.YOUTUBE_IMG_URL
