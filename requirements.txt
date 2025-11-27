@@ -1,5 +1,5 @@
 # Core dependencies
-pyrogram==2.1.23
+pyrogram==2.0.107
 pytgcalls[pyrogram]==2.1.0
 tgcrypto
 aiohttp>=3.8.1
@@ -47,4 +47,4 @@ youtube_search
 youtube-search-python
 git+https://github.com/joetats/youtube_search@master
 git+https://github.com/alexmercerind/youtube-search-python@main
-https://github.com/KurimuzonAkuma/pyrogram/archive/v2.1.23.zip
+https://github.com/KurimuzonAkuma/pyrogram/archive/v2.0.107.zip
